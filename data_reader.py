@@ -33,24 +33,33 @@ exits_db = pd.read_excel(original_db, "Station_Exits", header=1, skiprows=[0], t
 ##--------------------------------------------------------##
 
 analysis = "AM Peak   "
-df = (loads_db.iloc[:,0:10]).join(loads_db[analysis])
+df = (loads_db.iloc[:,0:10]).join(loads_db[analysis].astype(int))
 
 # %%
 ##--------------------------------------------------------##
 ##          GRAPH CREATION                                ##
 ##--------------------------------------------------------##
 
-G_loads = nx.from_pandas_edgelist(df, 'From NLC', 'To NLC', analysis)
-nx.draw(G_loads)
+G = nx.from_pandas_edgelist(df, 'From NLC', 'To NLC', analysis)
+nx.draw(G, node_size=20)
 
 # %%
-##--------------------------------------------------------##
-##          GRAPH ANALYSIS: DEGREE DISTRIBUTION           ##
+##--------- GRAPH ANALYSIS: DEGREE DISTRIBUTION ----------##
 ##--------------------------------------------------------##
 
-degrees_dict = G_loads.degree
-degrees = [val for (node, val) in G_loads.degree()]
+degrees_dict = G.degree
+degrees = [val for (node, val) in G.degree()]
 plt.hist(degrees, bins=100)
 plt.title("Degrees distribution")
+
+# %%
+##---------------CONSTRUCTION OF THE MATRICES-------------##
+##--------------------------------------------------------##
+
+A = [(df[df.iloc[:,4] == idx_station][analysis]).sum() for idx_station in df.iloc[:,4].unique()]
+B = [(df[df.iloc[:,7] == idx_station][analysis]).sum() for idx_station in df.iloc[:,4].unique()]
+F = [[(df[(df.iloc[:,4] == idx) & (df.iloc[:,7] == jdx)][analysis]).sum() for jdx in df.iloc[:,4].unique()] for idx in df.iloc[:,4].unique()]
+
+# %%
 
 # %%
