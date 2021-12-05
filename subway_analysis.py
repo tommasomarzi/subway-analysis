@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import networkx as nx
 import os 
+import scipy.optimize
 
 #%%
 
@@ -51,7 +52,6 @@ nx.draw(G, node_size=20)
 ##--------- GRAPH ANALYSIS: DEGREE DISTRIBUTION ----------##
 ##--------------------------------------------------------##
 
-degrees_dict = G.degree
 degrees = [val for (node, val) in G.degree()]
 plt.hist(degrees, bins=100)
 plt.title("Degrees distribution")
@@ -62,13 +62,15 @@ plt.title("Degrees distribution")
 """
 Compute the matrices in list form.
 Be careful: F takes some time to be computed.
+Remark: f_{ij} is defined as the flow from i to j. 
+F follows this notation, but in order to build it properly jdx also spans in loads_df['From NLC'].unique() (otherwise I would have different indexes and f_{kk} =/= 0).
 """
 
-B = [(loads_df[loads_df.iloc[:,4] == idx_station][analysis]).sum() for idx_station in loads_df.iloc[:,4].unique()]
-C = [(loads_df[loads_df.iloc[:,7] == idx_station][analysis]).sum() for idx_station in loads_df.iloc[:,4].unique()]
-#F = [[(loads_df[(loads_df.iloc[:,4] == idx) & (loads_df.iloc[:,7] == jdx)][analysis]).sum() for jdx in loads_df.iloc[:,4].unique()] for idx in loads_df.iloc[:,4].unique()]
-V = (((entries_df.set_index(entries_df['NLC'])).reindex(index = loads_df.iloc[:,4].unique())).reset_index(drop=True))[analysis].tolist()
-U = (((exits_df.set_index(exits_df['NLC'])).reindex(index = loads_df.iloc[:,4].unique())).reset_index(drop=True))[analysis].tolist()
-
-# %%
+B = [(loads_df[loads_df['From NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
+C = [(loads_df[loads_df['To NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
+F = [[(loads_df[(loads_df['From NLC'] == idx) & (loads_df['To NLC'] == jdx)][analysis]).sum() for jdx in loads_df['From NLC'].unique()] for idx in loads_df['From NLC'].unique()]
+V = (((entries_df.set_index(entries_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
+U = (((exits_df.set_index(exits_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
+T_in = [(v_i + sum(f_i_T)) for v_i, f_i_T in zip(V, list(map(list, zip(*F))))]
+T_out = [(u_i + sum(f_i)) for u_i, f_i in zip(U, F)]
 
