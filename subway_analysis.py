@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 import networkx as nx
 import os 
 import scipy.optimize
+import time
 
 #%%
 
@@ -32,14 +33,22 @@ exits_control = pd.read_excel(original_db, "Station_Exits", header=1, skiprows=[
 ##--------------------------------------------------------##
 
 analysis = "AM Peak   "         #column in analysis (be careful to the extra spaces)
+drop_lines = ['t']              #In ASC:        'u' = underground, 'd' = dlr + overground, 'r' = elizabeth + rails, 't' = trams
 
 # %%
 ##------------------ FILTER DATAFRAME --------------------##
 ##--------------------------------------------------------##
 
+##---- Save info and analysis
 loads_df = (loads_control.iloc[:,0:10]).join((loads_control[analysis].round()).astype(int))
 entries_df = (entries_control.iloc[:,0:3]).join((entries_control[analysis].round()).astype(int))
 exits_df = (exits_control.iloc[:,0:3]).join((exits_control[analysis].round()).astype(int))
+
+##---- Drop lines
+for line in drop_lines:
+    loads_df = loads_df[np.invert(loads_df['From ASC'].str.endswith(line))]
+    entries_df = entries_df[np.invert(entries_df['ASC'].str.endswith(line))]
+    exits_df = exits_df[np.invert(exits_df['ASC'].str.endswith(line))]
 
 # %%
 ##------------------ GRAPH CREATION ----------------------##
@@ -73,4 +82,3 @@ V = (((entries_df.set_index(entries_df['NLC'])).reindex(index = loads_df['From N
 U = (((exits_df.set_index(exits_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
 T_in = [(v_i + sum(f_i_T)) for v_i, f_i_T in zip(V, list(map(list, zip(*F))))]
 T_out = [(u_i + sum(f_i)) for u_i, f_i in zip(U, F)]
-
