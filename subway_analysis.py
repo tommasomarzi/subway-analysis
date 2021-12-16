@@ -6,6 +6,7 @@ import networkx as nx
 import os 
 import scipy.optimize
 import time
+from utilities import flow_histogram
 
 #%%
 
@@ -29,11 +30,15 @@ exits_control = pd.read_excel(original_db, "Station_Exits", header=1, skiprows=[
 #alighters_control = pd.read_excel(original_db, "Station_Alighters", header=1, skiprows=[0], thousands='.')
 
 # %%
-##------------- HYPERPARAMETERS FOR FILTER ---------------##
+##------------------- HYPERPARAMETERS --------------------##
 ##--------------------------------------------------------##
 
+##---- Filter
 analysis = "AM Peak   "         #column in analysis (be careful to the extra spaces)
-drop_lines = ['t']              #In ASC:        'u' = underground, 'd' = dlr + overground, 'r' = elizabeth + rails, 't' = trams
+drop_lines = ['t']              #In ASC:        'u' = underground, 'd' = dlr + overground, 'r' = elizabeth + rails, 't' = tram
+
+##---- Graph
+graph_analysis = False
 
 # %%
 ##------------------ FILTER DATAFRAME --------------------##
@@ -51,19 +56,21 @@ for line in drop_lines:
     exits_df = exits_df[np.invert(exits_df['ASC'].str.endswith(line))]
 
 # %%
-##------------------ GRAPH CREATION ----------------------##
+##----------- GRAPH ANALYSIS: CREATE AND DRAW ------------##
 ##--------------------------------------------------------##
 
-G = nx.from_pandas_edgelist(loads_df, 'From NLC', 'To NLC', analysis)
-nx.draw(G, node_size=20)
+if graph_analysis:
+    G = nx.from_pandas_edgelist(loads_df, 'From NLC', 'To NLC', analysis)
+    nx.draw(G, node_size=20)
 
 # %%
 ##--------- GRAPH ANALYSIS: DEGREE DISTRIBUTION ----------##
 ##--------------------------------------------------------##
 
-degrees = [val for (node, val) in G.degree()]
-plt.hist(degrees, bins=100)
-plt.title("Degrees distribution")
+if graph_analysis:
+    degrees = [val for (node, val) in G.degree()]
+    plt.hist(degrees, bins=100)
+    plt.title("Degrees distribution")
 
 # %%
 ##---------------CONSTRUCTION OF THE MATRICES-------------##
@@ -77,8 +84,19 @@ F follows this notation, but in order to build it properly jdx also spans in loa
 
 B = [(loads_df[loads_df['From NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
 C = [(loads_df[loads_df['To NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
-F = [[(loads_df[(loads_df['From NLC'] == idx) & (loads_df['To NLC'] == jdx)][analysis]).sum() for jdx in loads_df['From NLC'].unique()] for idx in loads_df['From NLC'].unique()]
 V = (((entries_df.set_index(entries_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
 U = (((exits_df.set_index(exits_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
-T_in = [(v_i + sum(f_i_T)) for v_i, f_i_T in zip(V, list(map(list, zip(*F))))]
-T_out = [(u_i + sum(f_i)) for u_i, f_i in zip(U, F)]
+
+if False:
+    F = [[(loads_df[(loads_df['From NLC'] == idx) & (loads_df['To NLC'] == jdx)][analysis]).sum() for jdx in loads_df['From NLC'].unique()] for idx in loads_df['From NLC'].unique()]
+    T_in = [(v_i + sum(f_i_T)) for v_i, f_i_T in zip(V, list(map(list, zip(*F))))]
+    T_out = [(u_i + sum(f_i)) for u_i, f_i in zip(U, F)]
+    F_flat = [item for items in F for item in items]
+    F_in  = [ sum(f_i_T) for f_i_T in list(map(list, zip(*F)))]
+    F_out = [ sum(f_i) for f_i in F]
+
+#%%
+##---------------- FLOW DISTRIBUTION PLOTS ---------------##
+##--------------------------------------------------------##
+
+flow_histogram(U,'U',100)
