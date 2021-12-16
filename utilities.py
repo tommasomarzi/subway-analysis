@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 ##--------------------FLOW DISTRIBUTION-------------------##
 ##--------------------------------------------------------##
 
-def flow_histogram(matrix, flow_type = None, n_bins = None):
+def flow_histogram(matrix, flow_type = None, n_bins = None, norm = False):
     """
     Build the histogram and plot it through a scatter plot.
     """
@@ -42,6 +42,8 @@ def flow_histogram(matrix, flow_type = None, n_bins = None):
         plt.xlim([10,1000000])   
         plt.ylim([1e-7,1])  
     
+    if norm:
+        n = n/sum(n)
 
     plt.xscale('log')
     plt.yscale('log')
