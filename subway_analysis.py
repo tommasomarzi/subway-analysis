@@ -6,6 +6,7 @@ import networkx as nx
 import os 
 import scipy.optimize
 import time
+import math
 from utilities import flow_histogram
 
 #%%
@@ -34,7 +35,7 @@ exits_control = pd.read_excel(original_db, "Station_Exits", header=1, skiprows=[
 ##--------------------------------------------------------##
 
 ##---- Filter
-analysis = "AM Peak   "         #column in analysis (be careful to the extra spaces)
+analysis = "15 min"         #column in analysis (be careful to the extra spaces)
 drop_lines = ['t']              #In ASC:        'u' = underground, 'd' = dlr + overground, 'r' = elizabeth + rails, 't' = tram
 
 ##---- Graph
@@ -44,22 +45,28 @@ graph_analysis = False
 ##------------------ FILTER DATAFRAME --------------------##
 ##--------------------------------------------------------##
 
-##---- Save info and analysis
-loads_df = (loads_control.iloc[:,0:10]).join((loads_control[analysis].round()).astype(int))
-entries_df = (entries_control.iloc[:,0:3]).join((entries_control[analysis].round()).astype(int))
-exits_df = (exits_control.iloc[:,0:3]).join((exits_control[analysis].round()).astype(int))
-
 ##---- Drop lines
 for line in drop_lines:
-    loads_df = loads_df[np.invert(loads_df['From ASC'].str.endswith(line))]
-    entries_df = entries_df[np.invert(entries_df['ASC'].str.endswith(line))]
-    exits_df = exits_df[np.invert(exits_df['ASC'].str.endswith(line))]
+    loads_df = loads_control[np.invert(loads_control['From ASC'].str.endswith(line))]
+    entries_df = entries_control[np.invert(entries_control['ASC'].str.endswith(line))]
+    exits_df = exits_control[np.invert(exits_control['ASC'].str.endswith(line))]
+
+##---- Keep info and analysis
+if analysis != "15 min":
+    loads_df = (loads_df.iloc[:,0:10]).join((loads_df[analysis].round()).astype(int))
+    entries_df = (entries_df.iloc[:,0:3]).join((entries_df[analysis].round()).astype(int))
+    exits_df = (exits_df.iloc[:,0:3]).join((exits_df[analysis].round()).astype(int))
+else:
+    loads_df = (loads_df.iloc[:,0:10]).join((loads_df.iloc[:,17:].round()).astype(int))
+    entries_df = (entries_df.iloc[:,0:3]).join((entries_df.iloc[:,11:].round()).astype(int))
+    exits_df = (exits_df.iloc[:,0:3]).join((exits_df.iloc[:,11:].round()).astype(int))
+
 
 # %%
 ##----------- GRAPH ANALYSIS: CREATE AND DRAW ------------##
 ##--------------------------------------------------------##
 
-if graph_analysis:
+if graph_analysis and (analysis != "15 min"):
     G = nx.from_pandas_edgelist(loads_df, 'From NLC', 'To NLC', analysis)
     nx.draw(G, node_size=20)
 
@@ -67,7 +74,7 @@ if graph_analysis:
 ##--------- GRAPH ANALYSIS: DEGREE DISTRIBUTION ----------##
 ##--------------------------------------------------------##
 
-if graph_analysis:
+if graph_analysis and (analysis != "15 min"):
     degrees = [val for (node, val) in G.degree()]
     plt.hist(degrees, bins=100)
     plt.title("Degrees distribution")
@@ -82,21 +89,35 @@ Remark: f_{ij} is defined as the flow from i to j.
 F follows this notation, but in order to build it properly jdx also spans in loads_df['From NLC'].unique() (otherwise I would have different indexes and f_{kk} =/= 0).
 """
 
-B = [(loads_df[loads_df['From NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
-C = [(loads_df[loads_df['To NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
-V = (((entries_df.set_index(entries_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
-U = (((exits_df.set_index(exits_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
+##---- With analysis column
+if analysis != "15 min":    
+    B = [(loads_df[loads_df['From NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
+    C = [(loads_df[loads_df['To NLC'] == idx_station][analysis]).sum() for idx_station in loads_df['From NLC'].unique()]
+    V = (((entries_df.set_index(entries_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
+    U = (((exits_df.set_index(exits_df['NLC'])).reindex(index = loads_df['From NLC'].unique())).reset_index(drop=True))[analysis].tolist()
 
-if False:
-    F = [[(loads_df[(loads_df['From NLC'] == idx) & (loads_df['To NLC'] == jdx)][analysis]).sum() for jdx in loads_df['From NLC'].unique()] for idx in loads_df['From NLC'].unique()]
-    T_in = [(v_i + sum(f_i_T)) for v_i, f_i_T in zip(V, list(map(list, zip(*F))))]
-    T_out = [(u_i + sum(f_i)) for u_i, f_i in zip(U, F)]
-    F_flat = [item for items in F for item in items]
-    F_in  = [ sum(f_i_T) for f_i_T in list(map(list, zip(*F)))]
-    F_out = [ sum(f_i) for f_i in F]
+    if False:
+        F = [[(loads_df[(loads_df['From NLC'] == idx) & (loads_df['To NLC'] == jdx)][analysis]).sum() for jdx in loads_df['From NLC'].unique()] for idx in loads_df['From NLC'].unique()]
+        T_in = [(v_i + sum(f_i_T)) for v_i, f_i_T in zip(V, list(map(list, zip(*F))))]
+        T_out = [(u_i + sum(f_i)) for u_i, f_i in zip(U, F)]
+        F_flat = [item for items in F for item in items]
+        F_in  = [ sum(f_i_T) for f_i_T in list(map(list, zip(*F)))]
+        F_out = [ sum(f_i) for f_i in F]
+
+##---- Every 15 minutes as flat list
+else:                       
+    V = entries_df.iloc[:,11:].values.reshape(-1,).tolist()
+    U = exits_df.iloc[:,11:].values.reshape(-1,).tolist()
+    F = loads_df.iloc[:,17:].values.reshape(-1,).tolist()
+    F_in = (loads_df.iloc[:,17:].join(loads_df['To NLC'])).groupby('To NLC').sum().values.reshape(-1,).tolist()
+    F_out = (loads_df.iloc[:,17:].join(loads_df['From NLC'])).groupby('From NLC').sum().values.reshape(-1,).tolist()
 
 #%%
 ##---------------- FLOW DISTRIBUTION PLOTS ---------------##
 ##--------------------------------------------------------##
 
-flow_histogram(U,'U',100)
+flow_histogram(V, 'V15', path = abs_path, n_bins = 300, save= True)
+flow_histogram(U, 'U15', path = abs_path, n_bins = 300, save= True)
+flow_histogram(F, 'F15', path = abs_path, n_bins = 300, save= True)
+flow_histogram(F_in, 'F15_in', path = abs_path, n_bins = 300, save= True)
+flow_histogram(F_out, 'F15_out', path = abs_path, n_bins = 300, save= True)
