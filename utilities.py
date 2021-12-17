@@ -2,12 +2,27 @@
 import matplotlib.pyplot as plt
 import math
 import numpy as np
+from scipy.optimize import curve_fit
+
+#%%
+##-------------------- FIT POWER LAW ---------------------##
+##--------------------------------------------------------##
+
+def power_law(x, a, b):
+    return a*(x**(-b))
+
+def power_law_fit(x, y, discard = None):
+    if discard:
+        x = x[discard:]
+        y = y[discard:]
+    pars, cov = curve_fit(f=power_law, xdata=x, ydata=y, p0=[0, 0], bounds=(-np.inf, np.inf))
+    return pars
 
 #%%
 ##--------------------FLOW DISTRIBUTION-------------------##
 ##--------------------------------------------------------##
 
-def flow_histogram(matrix, flow_type = None, path = None, n_bins = None, save = False):
+def flow_histogram(matrix, flow_type = None, path = None, n_bins = None, save = False, discard_points = None):
     """
     Build the histogram and plot it through a scatter plot.
     """
@@ -31,9 +46,9 @@ def flow_histogram(matrix, flow_type = None, path = None, n_bins = None, save = 
     if (n[n>0].min()-y_low ) < (y_low_aft - y_low)/10.:
         y_low = math.pow(10,np.floor(math.log10(n[n>0].min()))-1)
 
-    if (x_high-bins.max()) < (x_high - x_high_prev)/10.:
-        x_high = math.pow(10,np.ceil(math.log10(bins.max()))+1)
-
+    #if (x_high-bins.max()) < (x_high - x_high_prev)/10.:
+    #    x_high = math.pow(10,np.ceil(math.log10(bins.max()))+1)
+    x_high = math.pow(10,np.ceil(math.log10(bins.max()))+1)
     ax.set_xlim((1, x_high))
     ax.set_ylim((y_low, 1))
     
@@ -68,12 +83,22 @@ def flow_histogram(matrix, flow_type = None, path = None, n_bins = None, save = 
         ax.set_xlabel('$f_{i->.}$')
         ax.set_ylabel('P($f_{i->.}$)') 
     
-    ax.scatter(bins[:-1]+ 0.5*(bins[1:] - bins[:-1]), n, marker='.', c='red', s=40, alpha=0.3)
+    x_bins = bins[:-1]+ 0.5*(bins[1:] - bins[:-1])
+
+    pars = power_law_fit(x_bins[n>0], n[n>0],discard_points)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    
     ax.grid()
+    
+    ax.scatter(x_bins, n, marker='.', c='red', s=40, alpha=0.3)
+    ax.plot(x_bins[discard_points:], power_law(x_bins[discard_points:], *pars), linestyle='-', linewidth=1, color='black')
+    ax.text(0.2, 0.35, '$\gamma$ = {:.2f}'.format(pars[1]), transform=ax.transAxes, fontsize=8,
+        verticalalignment='center', bbox=props)
+    
     fig.tight_layout()
 
     if save:
-        fig.savefig(path + '/flow_distribution_'+str(flow_type)+'.png', dpi=1200, transparent=False)
+        fig.savefig(path + '/pics/flow_distribution_'+str(flow_type)+'.png', dpi=1200, facecolor='white', transparent=False)
     plt.show()
     plt.close()
 
