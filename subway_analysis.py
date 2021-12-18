@@ -6,7 +6,10 @@ import networkx as nx
 import os 
 import time
 import math
-from utilities import flow_histogram
+import importlib
+import utilities
+
+importlib.reload(utilities)
 
 #%%
 
@@ -118,8 +121,8 @@ else:
 n_of_bins = 400
 d_points = 20
 
-flow_histogram(V, 'V15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-flow_histogram(U, 'U15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-flow_histogram(F, 'F15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-flow_histogram(F_in, 'F15_in', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-flow_histogram(F_out, 'F15_out', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
+utilities.flow_histogram(V, 'V15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
+utilities.flow_histogram(U, 'U15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
+utilities.flow_histogram(F, 'F15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
+utilities.flow_histogram(F_in, 'F15_in', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
+utilities.flow_histogram(F_out, 'F15_out', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
