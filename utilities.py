@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
 
 #%%
 ##-------------------- FIT POWER LAW ---------------------##
@@ -88,17 +89,20 @@ def flow_histogram(matrix, flow_type = None, path = None, n_bins = None, save = 
     pars = power_law_fit(x_bins[n>0], n[n>0],discard_points)
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
     
+    predicted = power_law(x_bins[n>0.0][discard_points:], *pars)
+    R2 = r2_score(n[n>0.0][discard_points:], predicted)
+
+    text = '$\gamma$ = {:.2f}'.format(pars[1]) + '\n' + '$R^2$ = {:.3f}'.format(R2)
+
     ax.grid()
     
     ax.scatter(x_bins, n, marker='.', c='red', s=40, alpha=0.3)
     ax.plot(x_bins[discard_points:], power_law(x_bins[discard_points:], *pars), linestyle='-', linewidth=1, color='black')
-    ax.text(0.2, 0.35, '$\gamma$ = {:.2f}'.format(pars[1]), transform=ax.transAxes, fontsize=8,
-        verticalalignment='center', bbox=props)
+    ax.text(0.2, 0.35, text, transform=ax.transAxes, fontsize=8, verticalalignment='center', bbox=props)
     
     fig.tight_layout()
-
+    
     if save:
         fig.savefig(path + '/pics/flow_distribution_'+str(flow_type)+'.png', dpi=1200, facecolor='white', transparent=False)
     plt.show()
     plt.close()
-
