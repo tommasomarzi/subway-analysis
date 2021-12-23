@@ -37,11 +37,14 @@ exits_control = pd.read_excel(original_db, "Station_Exits", header=1, skiprows=[
 ##--------------------------------------------------------##
 
 ##---- Filter
-analysis = "15 min"         #column in analysis (be careful to the extra spaces)
+analysis = "15 min" #"AM Peak   "         #column in analysis (be careful to the extra spaces)
 drop_lines = ['t']              #In ASC:        'u' = underground, 'd' = dlr + overground, 'r' = elizabeth + rails, 't' = tram
 
 ##---- Graph
 graph_analysis = False
+
+##---- Fine tuning
+fine_tuning = True
 
 # %%
 ##------------------ FILTER DATAFRAME --------------------##
@@ -115,14 +118,46 @@ else:
     F_out = (loads_df.iloc[:,17:].join(loads_df['From NLC'])).groupby('From NLC').sum().values.reshape(-1,).tolist()
 
 #%%
+##--------------------- FINE TUNING ----------------------##
+##--------------------------------------------------------##
+"""
+Fine tuning of the discard points and the bins. At the moment:
+V ---> d_p = 3, n_bins = 100
+U ---> d_p = 2, n_bins = 100
+F ---> d_p = 32, n_bins = 100
+F_in ---> d_p = 5, n_bins = 150
+F_out ---> d_p = 9, n_bins = 250
+"""
+
+start_d_points = 1
+stop_d_points = 60
+start_bin = 200
+stop_bin = 400
+step_bin = 50
+tune_matrix = F_out
+
+if fine_tuning:
+    d_points_range = np.arange(start_d_points, stop_d_points+1)
+    for n_bin in np.arange(start_bin, stop_bin+1,step_bin):
+        R2 = utilities.grid_search(tune_matrix, d_points_range, n_bin)
+        plt.plot(d_points_range, R2)
+        plt.xticks(d_points_range)
+        plt.yticks(np.arange(0.9,1.02,0.01))
+        plt.grid()
+        plt.title("N bin: {}   R2 max: {:.4}   Index max: {}".format(str(n_bin), max(R2), R2.index(max(R2))+start_d_points))
+        plt.show()
+
+#%%
 ##---------------- FLOW DISTRIBUTION PLOTS ---------------##
 ##--------------------------------------------------------##
 
 n_of_bins = 400
-d_points = 20
+d_points = 15
 
-utilities.flow_histogram(V, 'V15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-utilities.flow_histogram(U, 'U15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-utilities.flow_histogram(F, 'F15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-utilities.flow_histogram(F_in, 'F15_in', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
-utilities.flow_histogram(F_out, 'F15_out', path = abs_path, n_bins = n_of_bins, save= True, discard_points = d_points)
+#utilities.flow_histogram(V, 'V15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 13)
+utilities.flow_histogram(U, 'U15', path = abs_path, n_bins = 100, save= True, discard_points = 2)
+#utilities.flow_histogram(F, 'F15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 80)
+#utilities.flow_histogram(F_in, 'F15_in', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 50)
+#utilities.flow_histogram(F_out, 'F15_out', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 50)
+
+# %%

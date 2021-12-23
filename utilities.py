@@ -106,3 +106,29 @@ def flow_histogram(matrix, flow_type = None, path = None, n_bins = None, save = 
         fig.savefig(path + '/pics/flow_distribution_'+str(flow_type)+'.png', dpi=1200, facecolor='white', transparent=False)
     plt.show()
     plt.close()
+
+#%%
+##---------------------- GRID SEARCH ---------------------##
+##--------------------------------------------------------##
+
+def grid_search(matrix, d_points_range, n_bins = None):
+
+    if n_bins:
+        n,bins,patches = plt.hist(matrix, density=True, bins = n_bins, alpha=0.6)
+    else:
+        n,bins,patches = plt.hist(matrix, density=True, alpha=0.6)
+    plt.close()
+
+    n = n/sum(n)
+
+    x_bins = bins[:-1]+ 0.5*(bins[1:] - bins[:-1])
+
+    R2_list = []
+
+
+    for d_points in d_points_range:
+        pars = power_law_fit(x_bins[n>0], n[n>0],d_points)
+        predicted = power_law(x_bins[n>0.0][d_points:], *pars)
+        R2_list.append(r2_score(n[n>0.0][d_points:], predicted))
+    
+    return R2_list
