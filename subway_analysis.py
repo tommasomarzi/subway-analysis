@@ -129,12 +129,12 @@ F_in ---> d_p = 5, n_bins = 150
 F_out ---> d_p = 9, n_bins = 250
 """
 
-start_d_points = 1
-stop_d_points = 60
+start_d_points = 0
+stop_d_points = 10
 start_bin = 200
-stop_bin = 400
+stop_bin = 350
 step_bin = 50
-tune_matrix = F_out
+tune_matrix = F
 
 if fine_tuning:
     d_points_range = np.arange(start_d_points, stop_d_points+1)
@@ -151,13 +151,13 @@ if fine_tuning:
 ##---------------- FLOW DISTRIBUTION PLOTS ---------------##
 ##--------------------------------------------------------##
 
-n_of_bins = 400
-d_points = 15
+n_of_bins = {'V':100, 'U':100, 'F':200, 'F_in':150, 'F_out':250}
+d_points =  {'V':5, 'U':5, 'F':2, 'F_in':5, 'F_out':5}
 
-#utilities.flow_histogram(V, 'V15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 13)
-utilities.flow_histogram(U, 'U15', path = abs_path, n_bins = 100, save= True, discard_points = 2)
-#utilities.flow_histogram(F, 'F15', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 80)
-#utilities.flow_histogram(F_in, 'F15_in', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 50)
-#utilities.flow_histogram(F_out, 'F15_out', path = abs_path, n_bins = n_of_bins, save= True, discard_points = 50)
+#%%
 
-# %%
+utilities.flow_histogram(V, flow_type='V15', path = abs_path, n_bins = n_of_bins['V'], save= True, discard_points = d_points['V'])
+utilities.flow_histogram(U, flow_type='U15', path = abs_path, n_bins = n_of_bins['U'], save= True, discard_points = d_points['U'])
+utilities.flow_histogram(F, flow_type='F15', path = abs_path, n_bins = n_of_bins['F'], save= True, discard_points = d_points['F'])
+utilities.flow_histogram(F_in, flow_type='F15_in', path = abs_path, n_bins = n_of_bins['F_in'], save= True, discard_points = d_points['F_in'])
+utilities.flow_histogram(F_out, flow_type='F15_out', path = abs_path, n_bins = n_of_bins['F_out'], save= True, discard_points = d_points['F_out'])
