@@ -41,10 +41,10 @@ analysis = "15 min" #"AM Peak   "         #column in analysis (be careful to the
 drop_lines = ['t']              #In ASC:        'u' = underground, 'd' = dlr + overground, 'r' = elizabeth + rails, 't' = tram
 
 ##---- Graph
-graph_analysis = False
+graph_analysis = True
 
 ##---- Fine tuning
-fine_tuning = True
+fine_tuning = False
 
 # %%
 ##------------------ FILTER DATAFRAME --------------------##
@@ -71,17 +71,20 @@ else:
 ##----------- GRAPH ANALYSIS: CREATE AND DRAW ------------##
 ##--------------------------------------------------------##
 
-if graph_analysis and (analysis != "15 min"):
-    G = nx.from_pandas_edgelist(loads_df, 'From NLC', 'To NLC', analysis)
+if graph_analysis:
+    if (analysis != "15 min"):
+        G = nx.from_pandas_edgelist(loads_df, 'From NLC', 'To NLC', analysis)
+    else:
+        G = nx.from_pandas_edgelist(loads_df, 'From NLC', 'To NLC')
     nx.draw(G, node_size=20)
 
 # %%
 ##--------- GRAPH ANALYSIS: DEGREE DISTRIBUTION ----------##
 ##--------------------------------------------------------##
 
-if graph_analysis and (analysis != "15 min"):
+if graph_analysis:
     degrees = [val for (node, val) in G.degree()]
-    plt.hist(degrees, bins=100)
+    plt.hist(degrees, bins=5)
     plt.title("Degrees distribution")
 
 # %%
@@ -111,11 +114,13 @@ if analysis != "15 min":
 
 ##---- Every 15 minutes as flat list
 else:                       
-    V = entries_df.iloc[:,11:].values.reshape(-1,).tolist()
-    U = exits_df.iloc[:,11:].values.reshape(-1,).tolist()
-    F = loads_df.iloc[:,17:].values.reshape(-1,).tolist()
-    F_in = (loads_df.iloc[:,17:].join(loads_df['To NLC'])).groupby('To NLC').sum().values.reshape(-1,).tolist()
-    F_out = (loads_df.iloc[:,17:].join(loads_df['From NLC'])).groupby('From NLC').sum().values.reshape(-1,).tolist()
+    V = entries_df.sort_values('NLC').iloc[:,3:].values.reshape(-1,).tolist()
+    U = exits_df.sort_values('NLC').iloc[:,3:].values.reshape(-1,).tolist()
+    F = loads_df.iloc[:,10:].values.reshape(-1,).tolist()
+    F_in = (loads_df.iloc[:,10:].join(loads_df['To NLC'])).groupby('To NLC').sum().values.reshape(-1,).tolist()
+    F_out = (loads_df.iloc[:,10:].join(loads_df['From NLC'])).groupby('From NLC').sum().values.reshape(-1,).tolist()
+    T_in = [sum(el) for el in zip(V, F_in)]
+    T_out = [sum(el) for el in zip(U, F_out)]
 
 #%%
 ##--------------------- FINE TUNING ----------------------##
@@ -151,13 +156,17 @@ if fine_tuning:
 ##---------------- FLOW DISTRIBUTION PLOTS ---------------##
 ##--------------------------------------------------------##
 
-n_of_bins = {'V':100, 'U':100, 'F':200, 'F_in':150, 'F_out':250}
-d_points =  {'V':5, 'U':5, 'F':2, 'F_in':5, 'F_out':5}
+n_of_bins = {'V':100, 'U':100, 'F':100, 'F_in':150, 'F_out':150, 'T_in':150, 'T_out':150}
+d_points =  {'V':0, 'U':0, 'F':1, 'F_in':1, 'F_out':1, 'T_in':1, 'T_out':1}
 
 #%%
 
-utilities.flow_histogram(V, flow_type='V15', path = abs_path, n_bins = n_of_bins['V'], save= True, discard_points = d_points['V'])
-utilities.flow_histogram(U, flow_type='U15', path = abs_path, n_bins = n_of_bins['U'], save= True, discard_points = d_points['U'])
-utilities.flow_histogram(F, flow_type='F15', path = abs_path, n_bins = n_of_bins['F'], save= True, discard_points = d_points['F'])
-utilities.flow_histogram(F_in, flow_type='F15_in', path = abs_path, n_bins = n_of_bins['F_in'], save= True, discard_points = d_points['F_in'])
-utilities.flow_histogram(F_out, flow_type='F15_out', path = abs_path, n_bins = n_of_bins['F_out'], save= True, discard_points = d_points['F_out'])
+utilities.flow_histogram(V, zipf_f = True,flow_type='V15', path = abs_path, n_bins = n_of_bins['V'], save= True, discard_points = d_points['V'])
+utilities.flow_histogram(U,  zipf_f = True,flow_type='U15', path = abs_path, n_bins = n_of_bins['U'], save= True, discard_points = d_points['U'])
+utilities.flow_histogram(F, zipf_f = True, flow_type='F15', path = abs_path, n_bins = n_of_bins['F'], save= True, discard_points = d_points['F'])
+utilities.flow_histogram(F_in, zipf_f = True, flow_type='F15_in', path = abs_path, n_bins = n_of_bins['F_in'], save= True, discard_points = d_points['F_in'])
+utilities.flow_histogram(F_out, zipf_f = True,flow_type='F15_out', path = abs_path, n_bins = n_of_bins['F_out'], save= True, discard_points = d_points['F_out'])
+utilities.flow_histogram(T_in, zipf_f = True, flow_type='T15_in', path = abs_path, n_bins = n_of_bins['T_in'], save= True, discard_points = d_points['T_in'])
+utilities.flow_histogram(T_out, zipf_f = True, flow_type='T15_out', path = abs_path, n_bins = n_of_bins['T_out'], save= True, discard_points = d_points['T_out'])
+
+# %%

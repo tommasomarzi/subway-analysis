@@ -23,14 +23,14 @@ def power_law_fit(x, y, discard = None):
 ##--------------------- ZIPF LAW -------------------------##
 ##--------------------------------------------------------##
 
-def zipf(x, a, b, c ):
-    return a*((c+x)**(-b))
+def zipf(x, a, b, c):
+    return ((b+a*x)**(-c))
 
 def zipf_fit(x, y, discard = None):
     if discard:
         x = x[discard:]
         y = y[discard:]
-    pars, cov = curve_fit(f=zipf, xdata=x, ydata=y, p0=[0, 0, 0], bounds=(-np.inf, np.inf))
+    pars, cov = curve_fit(f=zipf, xdata=x, ydata=y, p0=[0.1, 10, 2], bounds=(0, np.inf))#, p0=[0, 0, 0],
     return pars
 
 #%%
@@ -99,6 +99,12 @@ def flow_histogram(matrix, zipf_f = False, flow_type = None, path = None, n_bins
     elif flow_type == 'F15_out':       
         ax.set_xlabel('$f_{i->.}$')
         ax.set_ylabel('P($f_{i->.}$)') 
+    elif flow_type == 'T15_in':       
+        ax.set_xlabel('$T_{in}$')
+        ax.set_ylabel('P($T_{in}$)') 
+    elif flow_type == 'T15_out':       
+        ax.set_xlabel('$T_{out}$')
+        ax.set_ylabel('P($T_{out}$)') 
     
     x_bins = bins[:-1]+ 0.5*(bins[1:] - bins[:-1])
 
@@ -109,7 +115,7 @@ def flow_histogram(matrix, zipf_f = False, flow_type = None, path = None, n_bins
         predicted = zipf(x_bins[n>0.0][discard_points:], *pars)
         R2 = r2_score(n[n>0.0][discard_points:], predicted)
 
-        text = '$\gamma$ = {:.2f}'.format(pars[1]) + '\n' +'$c$ = {:.3f}'.format(pars[2]) + '\n' + '$R^2$ = {:.3f}'.format(R2)
+        text = '$\gamma$ = {:.2f}'.format(pars[2]) + '\n' +r'$\alpha$ = {:.3f}'.format(pars[0]) + '\n' + '$R^2$ = {:.3f}'.format(R2)
 
         ax.grid()
 
@@ -129,10 +135,11 @@ def flow_histogram(matrix, zipf_f = False, flow_type = None, path = None, n_bins
         ax.plot(x_bins[discard_points:], power_law(x_bins[discard_points:], *pars), linestyle='-', linewidth=1, color='black')
         ax.text(0.2, 0.35, text, transform=ax.transAxes, fontsize=8, verticalalignment='center', bbox=props)
 
+    ax.minorticks_on()
     fig.tight_layout()
     
     if save:
-        fig.savefig(path + '/pics/flow_distribution_'+str(flow_type)+'.png', dpi=1200, facecolor='white', transparent=False)
+        fig.savefig(path + '/pics/flow_distribution_'+str(flow_type)+'.png', dpi=1000, facecolor='white', transparent=False)
     plt.show()
     plt.close()
 
